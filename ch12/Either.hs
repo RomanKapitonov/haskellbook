@@ -36,4 +36,3 @@ either' _ g (Right v) = g v
 -- eitherMaybe'' (+5) (Left 'a')
 eitherMaybe'' :: (b -> c) -> Either a b -> Maybe c
 eitherMaybe'' f = either' (const Nothing) (Just . f)
-
