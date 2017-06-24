@@ -1,5 +1,8 @@
 module Lib where
 
+import Data.Char
+import Data.List (sort)
+
 half :: Fractional a => a -> a
 half x = x / 2
 
@@ -63,3 +66,26 @@ square x = x * x
 
 squareIdentity :: Double -> Double
 squareIdentity = square . sqrt
+
+twice :: (a -> a) -> a -> a
+twice f = f . f
+
+fourTimes :: (a -> a) -> a -> a
+fourTimes = twice . twice
+
+capitalizeWord :: String -> String
+capitalizeWord = map toUpper
+
+capitalizeRule :: String -> Bool
+capitalizeRule xs =
+  let uno a = capitalizeWord a
+      duo a = twice capitalizeWord a
+      quatro a = fourTimes capitalizeWord a
+  in (uno xs == duo xs) && (duo xs == quatro xs)
+
+sortRule :: (Ord a) => [a] -> Bool
+sortRule x =
+  let uno a = sort a
+      duo a = twice sort a
+      quatro a = fourTimes sort a
+  in (uno x == duo x) && (duo x == quatro x)

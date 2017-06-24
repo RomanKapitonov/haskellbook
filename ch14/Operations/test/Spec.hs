@@ -114,6 +114,16 @@ prop_squareIdentity = forAll
   (arbitrary :: Gen Double) $ \x ->
   (squareIdentity x) == id x
 
+prop_capitalizeRule :: Property
+prop_capitalizeRule = forAll
+  (arbitrary :: Gen String)
+  (capitalizeRule)
+
+prop_sortRule :: Property
+prop_sortRule = forAll
+  (arbitrary :: Gen [Int])
+  (sortRule)
+
 main :: IO ()
 main = do
   putStrLn ""
@@ -135,4 +145,6 @@ main = do
   quickCheck prop_takeLengthRule
   quickCheck prop_isomorphismRule
   quickCheck prop_squareIdentity
+  quickCheck prop_capitalizeRule
+  quickCheck prop_sortRule
   return ()
