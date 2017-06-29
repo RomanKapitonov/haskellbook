@@ -3,8 +3,9 @@
 
 module Semigroups where
 
-import Test.QuickCheck
+import Test.QuickCheck hiding (Success, Failure)
 import Data.Semigroup
+import Text.Show.Functions
 
 data Trivial = Trivial deriving (Eq, Show)
 data Two a b = Two a b deriving (Eq, Show)
@@ -13,6 +14,23 @@ data Four a b c d = Four a b c d deriving (Eq, Show)
 newtype BoolConj = BoolConj Bool deriving (Eq, Show)
 newtype BoolDisj = BoolDisj Bool deriving (Eq, Show)
 data Or a b = Fst a | Snd b deriving (Eq, Show)
+newtype Combine a b = Combine { unCombine :: (a -> b) }
+newtype Comp a = Comp { unComp :: (a -> a) }
+data Validation a b = Failure a | Success b deriving (Eq, Show)
+newtype AccumulateRight a b = AccumulateRight (Validation a b) deriving (Eq, Show)
+newtype AccumulateBoth a b = AccumulateBoth (Validation a b) deriving (Eq, Show)
+
+
+-- Prelude>let f = Combine $ \n -> Sum (n + 1)
+-- Prelude>let g = Combine $ \n -> Sum (n - 1)
+-- Prelude>unCombine (f <> g) $ 0
+-- Sum {getSum = 0}
+--     Prelude> unCombine (f <> g) $ 1
+--     Sum {getSum = 2}
+--     Prelude> unCombine (f <> f) $ 1
+--     Sum {getSum = 4}
+--     Prelude> unCombine (g <> f) $ 1
+--     Sum {getSum = 2}
 
 instance Arbitrary Trivial where
   arbitrary = return Trivial
@@ -97,10 +115,56 @@ instance (Arbitrary a, Arbitrary b) => Arbitrary (Or a b) where
     b <- arbitrary
     oneof $ return <$> [Fst a, Snd b]
 
+instance (Semigroup b) => Semigroup (Combine a b) where
+  (Combine f) <> (Combine g) = Combine $ \x -> (f x) <> (g x)
 
+instance (CoArbitrary a, Arbitrary b) => Arbitrary (Combine a b) where
+  arbitrary = do
+    f <- arbitrary
+    return $ Combine f
 
+instance Show (Combine a b) where
+  show (Combine f) = "Combine " ++ show f
 
+instance (Semigroup a) => Semigroup (Comp a) where
+  (Comp f) <> (Comp g) = Comp (f . g)
 
+instance (CoArbitrary a, Arbitrary a) => Arbitrary (Comp a) where
+  arbitrary = do
+    f <- arbitrary
+    return $ Comp f
 
+instance Show (Comp a) where
+  show (Comp f) = "Comp " ++ show f
 
+instance Semigroup a => Semigroup (Validation a b) where
+  Failure a <> Failure b = Failure $ a <> b
+  Failure a <> Success _ = Failure a
+  Success _ <> a = a
 
+instance (Arbitrary a, Arbitrary b) => Arbitrary (Validation a b) where
+  arbitrary = do
+    a <- arbitrary
+    b <- arbitrary
+    oneof $ return <$> [Failure a, Success b]
+
+instance (Semigroup a, Semigroup b) => Semigroup (AccumulateRight a b) where
+  AccumulateRight l <> AccumulateRight r = AccumulateRight (f (l, r))
+    where
+      f (Success a, Success b) = Success $ a <> b
+      f (Success _, Failure b) = Failure b
+      f (Failure a, _)         = Failure a
+
+instance (Arbitrary a, Arbitrary b) => Arbitrary (AccumulateRight a b) where
+  arbitrary = AccumulateRight <$> arbitrary
+
+instance (Semigroup a, Semigroup b) => Semigroup (AccumulateBoth a b) where
+  AccumulateBoth l <> AccumulateBoth r = AccumulateBoth (f (l, r))
+    where
+      f (Success a, Success b) = Success $ a <> b
+      f (Failure a, Failure b) = Failure $ a <> b
+      f (Failure a, _)         = Failure a
+      f (_, Failure b)         = Failure b
+
+instance (Arbitrary a, Arbitrary b) => Arbitrary (AccumulateBoth a b) where
+  arbitrary = AccumulateBoth <$> arbitrary

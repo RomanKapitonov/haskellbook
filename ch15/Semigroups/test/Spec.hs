@@ -14,3 +14,8 @@ main = do
   quickCheck (semigroupAssoc :: Associativity BoolConj)
   quickCheck (semigroupAssoc :: Associativity BoolDisj)
   quickCheck (semigroupAssoc :: Associativity (Or String String))
+  quickCheck (semigroupCombineAssoc :: FunctionAssociativity (Combine Int String) Int)
+  quickCheck (semigroupCompAssoc :: FunctionAssociativity (Comp String) String)
+  quickCheck (semigroupAssoc :: Associativity (Validation String String))
+  quickCheck (semigroupAssoc :: Associativity (AccumulateRight String String))
+  quickCheck (semigroupAssoc :: Associativity (AccumulateBoth String String))
