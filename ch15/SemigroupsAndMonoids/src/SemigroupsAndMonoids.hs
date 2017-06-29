@@ -1,7 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE FlexibleInstances #-}
 
-module Semigroups where
+module SemigroupsAndMonoids where
 
 import Test.QuickCheck hiding (Success, Failure)
 import Data.Semigroup
@@ -11,37 +11,27 @@ data Trivial = Trivial deriving (Eq, Show)
 data Two a b = Two a b deriving (Eq, Show)
 data Three a b c = Three a b c deriving (Eq, Show)
 data Four a b c d = Four a b c d deriving (Eq, Show)
+data Or a b = Fst a | Snd b deriving (Eq, Show)
+data Validation a b = Failure a | Success b deriving (Eq, Show)
+
 newtype BoolConj = BoolConj Bool deriving (Eq, Show)
 newtype BoolDisj = BoolDisj Bool deriving (Eq, Show)
-data Or a b = Fst a | Snd b deriving (Eq, Show)
+newtype Identity a = Identity a deriving (Eq, Show)
 newtype Combine a b = Combine { unCombine :: (a -> b) }
 newtype Comp a = Comp { unComp :: (a -> a) }
-data Validation a b = Failure a | Success b deriving (Eq, Show)
 newtype AccumulateRight a b = AccumulateRight (Validation a b) deriving (Eq, Show)
 newtype AccumulateBoth a b = AccumulateBoth (Validation a b) deriving (Eq, Show)
-
-
--- Prelude>let f = Combine $ \n -> Sum (n + 1)
--- Prelude>let g = Combine $ \n -> Sum (n - 1)
--- Prelude>unCombine (f <> g) $ 0
--- Sum {getSum = 0}
---     Prelude> unCombine (f <> g) $ 1
---     Sum {getSum = 2}
---     Prelude> unCombine (f <> f) $ 1
---     Sum {getSum = 4}
---     Prelude> unCombine (g <> f) $ 1
---     Sum {getSum = 2}
+newtype Mem s a = Mem { runMem :: s -> (a, s) }
 
 instance Arbitrary Trivial where
   arbitrary = return Trivial
 
-type TrivialAssoc = Trivial -> Trivial -> Trivial -> Bool
-type IdentityAssoc a = Identity a -> Identity a -> Identity a -> Bool
-
 instance Semigroup Trivial where
   Trivial <> Trivial = Trivial
 
-newtype Identity a = Identity a deriving (Eq, Show)
+instance Monoid Trivial where
+  mempty = Trivial
+  mappend = (<>)
 
 instance (Arbitrary a) => Arbitrary (Identity a) where
   arbitrary = do
@@ -51,8 +41,16 @@ instance (Arbitrary a) => Arbitrary (Identity a) where
 instance (Semigroup a) => Semigroup (Identity a) where
   (Identity x) <> (Identity y) = Identity (x <> y)
 
+instance (Monoid a, Semigroup a) => Monoid (Identity a) where
+  mempty = Identity mempty
+  mappend = (<>)
+
 instance (Semigroup a, Semigroup b) => Semigroup (Two a b) where
   (Two a b) <> (Two c d) = Two (a <> c) (b <> d)
+
+instance (Semigroup a, Monoid a, Semigroup b, Monoid b) => Monoid (Two a b) where
+  mempty = Two mempty mempty
+  mappend = (<>)
 
 instance (Arbitrary a, Arbitrary b) => Arbitrary (Two a b) where
   arbitrary = do
@@ -63,6 +61,15 @@ instance (Arbitrary a, Arbitrary b) => Arbitrary (Two a b) where
 instance (Semigroup a, Semigroup b, Semigroup c) => Semigroup (Three a b c) where
   (Three a b c) <> (Three d e f) = Three (a <> d) (b <> e) (c <> f)
 
+instance ( Semigroup a
+         , Monoid a
+         , Semigroup b
+         , Monoid b
+         , Semigroup c
+         , Monoid c) => Monoid (Three a b c) where
+  mempty = Three mempty mempty mempty
+  mappend = (<>)
+
 instance (Arbitrary a, Arbitrary b, Arbitrary c) => Arbitrary (Three a b c) where
   arbitrary = do
     a <- arbitrary
@@ -72,6 +79,17 @@ instance (Arbitrary a, Arbitrary b, Arbitrary c) => Arbitrary (Three a b c) wher
 
 instance (Semigroup a, Semigroup b, Semigroup c, Semigroup d) => Semigroup (Four a b c d) where
   (Four a b c d) <> (Four w x y z) = Four (a <> w) (b <> x) (c <> y) (d <> z)
+
+instance ( Semigroup a
+         , Monoid a
+         , Semigroup b
+         , Monoid b
+         , Semigroup c
+         , Monoid c
+         , Semigroup d
+         , Monoid d) => Monoid (Four a b c d) where
+  mempty = Four mempty mempty mempty mempty
+  mappend = (<>)
 
 instance (Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d) => Arbitrary (Four a b c d) where
   arbitrary = do
@@ -84,6 +102,10 @@ instance (Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d) => Arbitrary (Four
 instance Semigroup BoolConj where
   (BoolConj a) <> (BoolConj b) = BoolConj (a && b)
 
+instance Monoid BoolConj where
+  mempty = BoolConj True
+  mappend = (<>)
+
 instance Arbitrary BoolConj where
   arbitrary = do
     a <- arbitrary
@@ -92,19 +114,15 @@ instance Arbitrary BoolConj where
 instance Semigroup BoolDisj where
   (BoolDisj a) <> (BoolDisj b) = BoolDisj (a || b)
 
+instance Monoid BoolDisj where
+  mempty = BoolDisj False
+  mappend = (<>)
+
 instance Arbitrary BoolDisj where
   arbitrary = do
     a <- arbitrary
     return (BoolDisj a)
 
--- Prelude> Fst 1 <> Snd 2
--- Snd 2
--- Prelude> Fst 1 <> Fst 2
--- Fst 2
--- Prelude> Snd 1 <> Fst 2
--- Snd 1
--- Prelude> Snd 1 <> Snd 2
--- Snd 1
 instance (Semigroup a, Semigroup b) => Semigroup (Or a b) where
   (Fst _) <> x = x
   (Snd x) <> _ = Snd x
@@ -117,6 +135,10 @@ instance (Arbitrary a, Arbitrary b) => Arbitrary (Or a b) where
 
 instance (Semigroup b) => Semigroup (Combine a b) where
   (Combine f) <> (Combine g) = Combine $ \x -> (f x) <> (g x)
+
+instance (Semigroup b, Monoid b) => Monoid (Combine a b) where
+  mempty = Combine (const mempty)
+  mappend = (<>)
 
 instance (CoArbitrary a, Arbitrary b) => Arbitrary (Combine a b) where
   arbitrary = do
@@ -168,3 +190,20 @@ instance (Semigroup a, Semigroup b) => Semigroup (AccumulateBoth a b) where
 
 instance (Arbitrary a, Arbitrary b) => Arbitrary (AccumulateBoth a b) where
   arbitrary = AccumulateBoth <$> arbitrary
+
+instance (Monoid a) => Monoid (Mem s a) where
+  mempty = Mem $ \s -> (mempty, s)
+  (Mem f) `mappend` (Mem g) = Mem $ \s ->
+    (\(a, fs) ->
+      (\(b, fg) ->
+        (a `mappend` b, fg)
+      ) (g fs)
+    ) (f s)
+
+instance Show (Mem s a) where
+  show (Mem f) = "Mem " ++ show f
+
+instance (Arbitrary s, CoArbitrary s, Arbitrary a) => Arbitrary (Mem s a) where
+  arbitrary = do
+    s <- arbitrary
+    return (Mem s)
