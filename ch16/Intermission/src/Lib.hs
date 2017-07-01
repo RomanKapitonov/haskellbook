@@ -12,6 +12,8 @@ data Four' a b = Four' a a a b deriving (Show, Eq)
 -- Not possible due to no type argument present in data definition
 -- Hence no structure to preserve when being referred to as Functor
 data Trivial = Trivial
+data Possibly a = LolNope | Yeppers a deriving (Eq, Show)
+data Sum a b = First a | Second b deriving (Eq, Show)
 
 instance Functor Identity where
   fmap f (Identity a) = Identity (f a)
@@ -79,3 +81,22 @@ instance (Arbitrary a, Arbitrary b) => Arbitrary (Four' a b) where
     c <- arbitrary
     d <- arbitrary
     return (Four' a b c d)
+
+instance Functor Possibly where
+  fmap _ (LolNope) = LolNope
+  fmap f (Yeppers x) = Yeppers (f x)
+
+instance (Arbitrary a) => Arbitrary (Possibly a) where
+  arbitrary = do
+    a <- arbitrary
+    oneof $ return <$> [LolNope, Yeppers a]
+
+instance Functor (Sum a) where
+  fmap _ (First a) = First a
+  fmap f (Second b) = Second (f b)
+
+instance (Arbitrary a, Arbitrary b) => Arbitrary (Sum a b) where
+  arbitrary = do
+    a <- arbitrary
+    b <- arbitrary
+    oneof $ return <$> [First a, Second b]

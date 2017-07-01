@@ -35,3 +35,8 @@ main = do
   quickCheck (functorIdentity :: IdentityLaw (Four' Int) Int)
   quickCheck (functorCompose :: ComposeLaw (Four' Int) Int String Char)
 
+  quickCheck (functorIdentity :: IdentityLaw Possibly Int)
+  quickCheck (functorCompose :: ComposeLaw Possibly Int String Char)
+
+  quickCheck (functorIdentity :: IdentityLaw (Sum Int) Int)
+  quickCheck (functorCompose :: ComposeLaw (Sum Int) Int String Char)
