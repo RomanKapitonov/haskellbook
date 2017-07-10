@@ -10,6 +10,8 @@ data Optional a = Nada | Yep a deriving (Eq, Show)
 data List a = Nil | Cons a (List a) deriving (Eq, Show)
 data Three a b c = Three a b c deriving (Eq, Show)
 data Three' a b = Three' a b b deriving (Eq, Show)
+data S n a = S (n a) a deriving (Eq, Show)
+data Tree a = Empty | Leaf a | Node (Tree a) a (Tree a) deriving (Eq, Show)
 
 instance Functor Identity where
   fmap f (Identity a) = Identity (f a)
@@ -109,6 +111,51 @@ instance (Arbitrary a, Arbitrary b) => Arbitrary (Three' a b) where
 instance (Eq a, Eq b) => EqProp (Three' a b) where
   (=-=) = eq
 
+-- instance Foldable ((->) r) where
+--   foldMap = undefined
+
+-- instance Traversable ((->) r) where
+--   traverse = undefined
+
+instance (Functor n) => Functor (S n) where
+  fmap f (S n a) = S (f <$> n) (f a)
+
+instance (Foldable n) => Foldable (S n) where
+  foldMap f (S n a) = foldMap f n `mappend` f a
+
+instance Traversable n => Traversable (S n) where
+  traverse f (S n a) = S <$> traverse f n <*> f a
+
+instance (Arbitrary (n a), CoArbitrary (n a), Arbitrary a, CoArbitrary a) => Arbitrary (S n a) where
+  arbitrary = do
+    n <- arbitrary
+    a <- arbitrary
+    return $ S (n a) a
+
+instance (Eq (n a), Eq a) => EqProp (S n a) where
+  (=-=) = eq
+
+instance Functor Tree where
+  fmap _ Empty = Empty
+  fmap f (Leaf x) = Leaf (f x)
+  fmap f (Node l x r) = Node (f <$> l) (f x) (f <$> r)
+
+instance Foldable Tree where
+  foldMap _ Empty = mempty
+  foldMap f (Leaf x) = f x
+  foldMap f (Node l x r) = foldMap f l `mappend` f x `mappend` foldMap f r
+
+instance Traversable Tree where
+  traverse _ Empty = pure Empty
+  traverse f (Leaf x) = Leaf <$> f x
+  traverse f (Node l x r) = Node <$> (traverse f l) <*> f x <*> (traverse f r)
+
+instance Arbitrary a => Arbitrary (Tree a) where
+  arbitrary = oneof [return $ Empty, Leaf <$> arbitrary, Node <$> arbitrary <*> arbitrary <*> arbitrary]
+
+instance Eq a => EqProp (Tree a) where
+  (=-=) = eq
+
 main :: IO ()
 main = do
   quickBatch $ traversable (undefined :: Identity (String, String, String))
@@ -117,3 +164,5 @@ main = do
   quickBatch $ traversable (undefined :: List (String, String, String))
   quickBatch $ traversable (undefined :: Three String String (String, String, String))
   quickBatch $ traversable (undefined :: Three' String (String, String, String))
+  quickBatch $ traversable (undefined :: S Maybe (String, String, String))
+  quickBatch $ traversable (undefined :: Tree (String, String, String))
