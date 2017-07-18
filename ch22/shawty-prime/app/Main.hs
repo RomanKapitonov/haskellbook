@@ -67,7 +67,7 @@ shortyFound tbs =
 -- ReaderT :: * -> (* -> *) -> * -> *
 -- :k ScottyM
 -- ScottyM :: * -> *
--- 
+--
 app :: ReaderT R.Connection ScottyM ()
 app = do
   ReaderT $ \rConn -> get "/" $ do
