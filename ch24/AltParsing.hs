@@ -13,6 +13,7 @@ type RationalOrInteger = Either Rational Integer
 a = "blah"
 b = "123"
 c = "123blah789"
+d = "anotherstring"
 
 parseNos :: Parser NumberOrString
 parseNos = skipMany (oneOf "\n") >> (Left <$> integer) <|> (Right <$> some letter)
