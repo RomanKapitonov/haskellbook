@@ -25,22 +25,22 @@ instance (Monad m) => Monad (IdentityT m) where
   return = pure
   (IdentityT ma) >>= f = IdentityT $ ma >>= runIdentityT . f
 
-:t runIdentityT
-runIdentityT :: (IdentityT m a -> m a)
+-- :t runIdentityT
+-- runIdentityT :: (IdentityT m a -> m a)
 
-undefined :: (IdentityT m b -> m b) -> (a -> IdentityT m b) -> m b
-runIdentityT :: 
+-- undefined :: (IdentityT m b -> m b) -> (a -> IdentityT m b) -> m b
+-- runIdentityT ::
 
-runIdentity 
+-- runIdentity
 
-:t runIdentityT . f
-(a -> IdentityT m b)
+-- :t runIdentityT . f
+-- (a -> IdentityT m b)
 
-:t (>>=)
-(>>=) :: Monad m => 
+-- :t (>>=)
+-- (>>=) :: Monad m =>
 
-              m a               ->         (a -> m b)                    -> m b
+--               m a               ->         (a -> m b)                    -> m b
 
-:t (undefined :: IdentityT m a) >>= (undefined :: (a -> IdentityT m b))
+-- :t (undefined :: IdentityT m a) >>= (undefined :: (a -> IdentityT m b))
 
-(>>=) :: IdentityT m a -> (a -> IdentityT m b) -> IdentityT m b
+-- (>>=) :: IdentityT m a -> (a -> IdentityT m b) -> IdentityT m b
