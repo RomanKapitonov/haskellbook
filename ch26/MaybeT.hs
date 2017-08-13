@@ -9,15 +9,15 @@ newtype MaybeT m a = MaybeT { runMaybeT :: m (Maybe a) }
 data Hole = Hole
 hole = undefined
 
-instance (Functor m) => Functor (MaybeT m) where
-  fmap f (MaybeT ma) = MaybeT $ (fmap . fmap) f ma
-
 -- instance (Applicative m) => Applicative (MaybeT m) where
 --   pure x = MaybeT $ pure (pure x)
 --   (MaybeT fn) <*> (MaybeT x) = MaybeT $ (convert fn) <*> x
 --     where convert :: m (Maybe (a -> b)) -> m (Maybe a -> Maybe b)
 --             -- First option using (<*>) <$>
 --           convert h = (<*>) <$> h
+
+instance (Functor m) => Functor (MaybeT m) where
+  fmap f (MaybeT ma) = MaybeT $ (fmap . fmap) f ma
 
 instance (Applicative m) => Applicative (MaybeT m) where
   pure x = MaybeT $ (pure (pure x))
